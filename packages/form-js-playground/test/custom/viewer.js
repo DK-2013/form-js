@@ -81,6 +81,7 @@ RangeRenderer.config = {
     'key',
     'label',
     'description',
+    'undefined-decimalDigits', // see NumberEntries
     'min',
     'max'
   ],

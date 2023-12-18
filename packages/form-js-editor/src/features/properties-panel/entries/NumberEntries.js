@@ -1,7 +1,7 @@
 import { NumberFieldEntry, isNumberFieldEntryEdited, TextFieldEntry, isTextFieldEntryEdited } from '@bpmn-io/properties-panel';
 
 import Big from 'big.js';
-import { get } from 'min-dash';
+import { get, set, isArray } from 'min-dash';
 import { useService } from '../hooks';
 import { countDecimals, isValidNumber } from '../Util';
 
@@ -15,11 +15,19 @@ export default function NumberEntries(props) {
   const entries = [];
 
   entries.push({
-    id: id + '-decimalDigits',
+    id: id + '-decimalDigits', // what is reason this way id calculate?
     component: NumberDecimalDigits,
     isEdited: isNumberFieldEntryEdited,
     editField,
     field,
+    path: [ 'decimalDigits' ],
+    label: 'Decimal digits',
+    step: 'any',
+    validate: (value) => {
+      if (value === undefined || value === null) return;
+      if (value < 0) return 'Should be greater than or equal to zero.';
+      if (!Number.isInteger(value)) return 'Should be an integer.';
+    },
     isDefaultVisible: (field) => field.type === 'number'
   });
 
@@ -40,34 +48,41 @@ function NumberDecimalDigits(props) {
   const {
     editField,
     field,
-    id
+    id,
+    path,
+    label,
+    step,
+    validate,
   } = props;
 
   const debounce = useService('debounce');
 
-  const getValue = (e) => get(field, [ 'decimalDigits' ]);
+  const getValue = (e) => get(field, path);
 
   const setValue = (value, error) => {
     if (error) {
       return;
     }
 
-    editField(field, [ 'decimalDigits' ], value);
+    if (isArray(path) && path.length > 1) {
+      const [ key, ...innerPath ] = path;
+      const scope = get(field, [ key ], {});
+      editField(field, [ key ], set(scope, innerPath, value));
+      return;
+    }
+
+    editField(field, path, value);
   };
 
   return NumberFieldEntry({
     debounce,
-    label: 'Decimal digits',
+    label,
     element: field,
-    step: 'any',
+    step,
     getValue,
     id,
     setValue,
-    validate: (value) => {
-      if (value === undefined || value === null) return;
-      if (value < 0) return 'Should be greater than or equal to zero.';
-      if (!Number.isInteger(value)) return 'Should be an integer.';
-    }
+    validate,
   });
 
 }
